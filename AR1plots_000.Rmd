@@ -1,0 +1,137 @@
+---
+title: "SIS with correction: simulation of AR(1) model missing values with comparison to gold standard"
+output:
+pdf_document: default
+html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(plotrix)
+library(tidyverse)
+library(flextable)
+```
+
+
+```{r, echo = FALSE}
+#import parameters and put in dataframe
+params <- read.csv("C:/Users/valea/source/repos/SIScorrections/SIScorrections/parameters.csv", header = FALSE)
+sigmasq <- params[2,1]
+phi <- params[2,2]
+p <- params[2,3]
+N <- params[2,4]
+num_par_tx <- params[2,5]
+num_par <- params[2,5]
+```
+
+
+Simulation of `r num_par_tx` particles for `r N` times.
+
+PARAMETERS:  
+variance of the AR(1) model $\sigma^2_\mu =$ `r sigmasq`,  
+parameter of the AR(1) model $\varphi =$ `r phi`,  
+parameter of the Bernoulli distribution $p =$ `r p`,
+
+
+
+
+```{r, echo = FALSE}
+#import particles and put in dataframe
+vec_N <- 1:N
+x <- "particles"
+part_header <- paste(x, vec_N)
+my_particles <- read.csv("C:/Users/valea/source/repos/SIScorrections/SIScorrections/resampled_000.csv", header = FALSE)
+colnames(my_particles) <- part_header
+my_particles <- my_particles[c(1:N)]
+```
+
+
+```{r, echo = FALSE, warning = FALSE}
+#import ar(1) simulated values and put in dataframe
+#plot timseries of simulated values
+vector_x_header <- paste(x, vec_N)
+vector_x_dat <- read.csv("C:/Users/valea/source/repos/SIScorrections/SIScorrections/vector_X_000.dat", header = FALSE)
+vector_x <- t(vector_x_dat)
+colnames(vector_x) <- vector_x_header
+vector_x <- vector_x[c(1:N)]
+AR1 <- ggplot(vector_x_dat) + geom_line(aes(x = c(1:N), y = vector_x_dat[,1]))
+print(AR1 + ggtitle("AR(1) simulated and observed values") + theme(plot.title = element_text(hjust = 0.5)) + labs(y="AR(1)", x = "discrete time points"))
+```
+
+
+```{r, echo = FALSE, warning = FALSE}
+#import vector of knowledge of system
+vector_z_header <- paste(x, vec_N)
+vector_z_dat <- read.csv("C:/Users/valea/source/repos/SIScorrections/SIScorrections/vector_Z_000.dat", header = FALSE)
+vector_z <- t(vector_z_dat)
+colnames(vector_z) <- vector_z_header
+vector_z <- vector_z[c(1:N)]
+
+#ensures that if there are no missing values we don't get error messages
+zeroes <- vector()
+for (i in 1:length(vector_z)){
+        if (vector_z[i] == 0){
+                zeroes <- 1
+        }
+}
+if (length(zeroes) == 0){
+        print("there are no missing values")
+        knitr::knit_exit()
+        
+}
+```
+
+
+```{r, echo = FALSE}
+w <- "weights"
+num_par = as.double(num_par_tx)
+N = as.double(N)
+wei_header <- paste(w, vec_N)
+my_weights <- as.data.frame(matrix(1/num_par, nrow = num_par, ncol = N))
+colnames(my_weights) <- wei_header
+```
+
+
+```{r, echo = FALSE, warning = FALSE}
+#import values of expectations for gold standard
+gold_exp_dat <- read.csv("C:/Users/valea/source/repos/SIScorrections/SIScorrections/AR1_interp_exp_000.csv", header = FALSE)
+gold_exp <- t(gold_exp_dat)
+gold_exp <- gold_exp[c(1:N)]
+#ggplot(gold_exp_dat) + geom_line(aes(x = c(1:N), y = gold_exp_dat[,1]))
+```
+
+
+```{r, echo = FALSE, warning = FALSE}
+#import values of variance for gold standard
+gold_var_dat <- read.csv("C:/Users/valea/source/repos/SIScorrections/SIScorrections/AR1_interp_var_000.csv", header = FALSE)
+gold_var <- t(gold_var_dat)
+gold_var <- gold_var[c(1:N)]
+```
+
+
+```{r echo=FALSE, warning=FALSE}
+#plotting all missing values
+
+indNA <- vector()
+for(i in 1:length(vector_x)){
+        if(vector_z[i] == 0){
+               indNA[i] <- i
+        } else{}
+}
+ind <- na.omit(indNA)
+
+p <- vector()
+
+for(i in 1:length(ind)){
+        p <- my_particles %>% select(ind[i])
+        w <- my_weights %>% select(ind[i])
+        df <- do.call(rbind, Map(function(...) setNames(cbind.data.frame(...), c("p", "w")), p, w))
+        tit <- sprintf("Missing Observation t = %i ", ind[i])
+        mini = (gold_exp[i]-5)
+        maxi = (gold_exp[i]+5)
+        mea = (gold_exp[ind[i]])
+        vari = sqrt((gold_var[ind[i]]))
+        print(ggplot(df, aes(x = df[,1], weight = df[,2])) + geom_histogram(aes(y = ..density..), breaks = seq(-4, 4, by = 0.3), colour = "black", fill = "white") + geom_density(aes(colour = "Density plot of data")) + stat_function(fun = dnorm, args = list(mean = mea, sd = vari), aes(colour = "Gold Standard")) + geom_vline(xintercept = vector_x[i], linetype = "dotted", size = 1.5, colour = "green") +  ggtitle(tit) + theme(plot.title = element_text(hjust = 0.5)) + labs(x = "") + scale_colour_manual("Legend", values = c("red", "blue", "green")) + xlim(mini, maxi))}
+```
+
+
