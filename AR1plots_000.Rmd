@@ -28,7 +28,7 @@ num_par <- params[2,5]
 Simulation of `r num_par_tx` particles for `r N` times.
 
 PARAMETERS:  
-variance of the AR(1) model $\sigma^2_\mu =$ `r sigmasq`,  
+variance of the AR(1) model $\sigma^2 =$ `r sigmasq`,  
 parameter of the AR(1) model $\varphi =$ `r phi`,  
 parameter of the Bernoulli distribution $p =$ `r p`,
 
@@ -50,7 +50,7 @@ my_particles <- my_particles[c(1:N)]
 #import ar(1) simulated values and put in dataframe
 #plot timseries of simulated values
 vector_x_header <- paste(x, vec_N)
-vector_x_dat <- read.csv("C:/Users/valea/source/repos/SIScorrections/SIScorrections/vector_X_000.dat", header = FALSE)
+vector_x_dat <- read.csv("C:/Users/valea/source/repos/SIScorrections/SIScorrections/vector_X.dat", header = FALSE)
 vector_x <- t(vector_x_dat)
 colnames(vector_x) <- vector_x_header
 vector_x <- vector_x[c(1:N)]
@@ -62,7 +62,7 @@ print(AR1 + ggtitle("AR(1) simulated and observed values") + theme(plot.title = 
 ```{r, echo = FALSE, warning = FALSE}
 #import vector of knowledge of system
 vector_z_header <- paste(x, vec_N)
-vector_z_dat <- read.csv("C:/Users/valea/source/repos/SIScorrections/SIScorrections/vector_Z_000.dat", header = FALSE)
+vector_z_dat <- read.csv("C:/Users/valea/source/repos/SIScorrections/SIScorrections/vector_B.dat", header = FALSE)
 vector_z <- t(vector_z_dat)
 colnames(vector_z) <- vector_z_header
 vector_z <- vector_z[c(1:N)]
@@ -120,6 +120,7 @@ for(i in 1:length(vector_x)){
 }
 ind <- na.omit(indNA)
 
+
 p <- vector()
 
 for(i in 1:length(ind)){
@@ -127,11 +128,12 @@ for(i in 1:length(ind)){
         w <- my_weights %>% select(ind[i])
         df <- do.call(rbind, Map(function(...) setNames(cbind.data.frame(...), c("p", "w")), p, w))
         tit <- sprintf("Missing Observation t = %i ", ind[i])
-        mini = (gold_exp[i]-5)
-        maxi = (gold_exp[i]+5)
+        mini = (gold_exp[ind[i]]-10)
+        maxi = (gold_exp[ind[i]]+10)
         mea = (gold_exp[ind[i]])
         vari = sqrt((gold_var[ind[i]]))
-        print(ggplot(df, aes(x = df[,1], weight = df[,2])) + geom_histogram(aes(y = ..density..), breaks = seq(-4, 4, by = 0.3), colour = "black", fill = "white") + geom_density(aes(colour = "Density plot of data")) + stat_function(fun = dnorm, args = list(mean = mea, sd = vari), aes(colour = "Gold Standard")) + geom_vline(xintercept = vector_x[i], linetype = "dotted", size = 1.5, colour = "green") +  ggtitle(tit) + theme(plot.title = element_text(hjust = 0.5)) + labs(x = "") + scale_colour_manual("Legend", values = c("red", "blue", "green")) + xlim(mini, maxi))}
+        print(ggplot(df, aes(x = df[,1], weight = df[,2])) + geom_histogram(aes(y = ..density..), breaks = seq(mini, maxi, by = 0.3), colour = "black", fill = "white") + geom_density(aes(colour = "Density plot of data")) + stat_function(fun = dnorm, args = list(mean = mea, sd = vari), aes(colour = "Gold Standard")) + geom_vline(xintercept = vector_x[ind[i]], linetype = "dotted", size = 1.5, colour = "green") +  ggtitle(tit) + theme(plot.title = element_text(hjust = 0.5)) + labs(x = "") + scale_colour_manual("Legend", values = c("red", "blue", "green")) + xlim(mini, maxi))}
 ```
+
 
 
